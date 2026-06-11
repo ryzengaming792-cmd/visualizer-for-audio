@@ -25,31 +25,30 @@ function generatePCB() {
     const numPaths = 60; // Total number of traces radiating out
     
     // Avoid drawing traces directly under the logo (leave a center hole)
-    const minRadius = 150; 
+    // Increased slightly to ensure perfect clearance
+    const minRadius = 170; 
     
     for (let i = 0; i < numPaths; i++) {
         const path = [];
-        // Determine starting angle and position
-        const angle = (Math.PI * 2 / numPaths) * i + (Math.random() * 0.1);
+        // Determine starting angle and position (perfectly distributed)
+        const angle = (Math.PI * 2 / numPaths) * i;
         let x = centerX + Math.cos(angle) * minRadius;
         let y = centerY + Math.sin(angle) * minRadius;
         
         path.push({x, y});
         
-        // Generate segments for the trace
-        let currentLength = 0;
-        let dirAngle = angle;
-        
         // A trace has 3 to 6 segments
         const numSegments = Math.floor(Math.random() * 4) + 3;
         
+        // The core direction this trace should travel (snapped to 45 degrees)
+        const baseAngle = Math.round(angle / (Math.PI/4)) * (Math.PI/4);
+        
         for (let s = 0; s < numSegments; s++) {
-            // Segments usually travel at 0, 45, or 90 degrees relative to grid
-            // Snap direction to nearest 45 degrees
-            let snappedAngle = Math.round(dirAngle / (Math.PI/4)) * (Math.PI/4);
-            
-            // Randomly branch off by 45 degrees occasionally
-            if (Math.random() > 0.5) {
+            // PROFESSIONAL ROUTING: 
+            // Traces can only deviate +/- 45 degrees from the main outward angle.
+            // This strictly prevents any lines from doing U-turns and intersecting the center circle!
+            let snappedAngle = baseAngle;
+            if (s > 0 && Math.random() > 0.4) {
                 snappedAngle += (Math.random() > 0.5 ? 1 : -1) * (Math.PI/4);
             }
             
@@ -58,7 +57,6 @@ function generatePCB() {
             y += Math.sin(snappedAngle) * segLength;
             
             path.push({x, y});
-            dirAngle = snappedAngle; // continue mostly in the same direction
             
             // If we go way off screen, stop
             if (x < -100 || x > window.innerWidth+100 || y < -100 || y > window.innerHeight+100) {
