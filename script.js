@@ -307,14 +307,11 @@ if (volumeSlider) {
 let lastBeatTime = 0;
 let lastSmallBeatTime = 0;
 let lastMelodyTime = 0;
-let energyHistory = [];
-let bassHistory = [];
 let smoothedIntensity = 0; // Tracks smooth glowing
-const HISTORY_SIZE = 60; // 1 second of history at 60fps
 
-// Spectral Flux trackers for perfect beat onset detection
-let prevBass = 0;
-let prevEnergy = 0;
+// Decaying Peak Threshold trackers
+let bigBeatThreshold = 15;
+let smallBeatThreshold = 10;
 
 function renderFrame() {
     if (!isPlaying) return;
@@ -333,29 +330,6 @@ function renderFrame() {
     for(let i=10; i<=150; i++) overallEnergy += dataArray[i];
     overallEnergy /= 140;
     
-    // Track energy history to create a moving average
-    energyHistory.push(overallEnergy);
-    bassHistory.push(bass);
-    if (energyHistory.length > HISTORY_SIZE) {
-        energyHistory.shift();
-        bassHistory.shift();
-    }
-    
-    let avgEnergy = 0;
-    let avgBass = 0;
-    for(let i=0; i<energyHistory.length; i++) {
-        avgEnergy += energyHistory[i];
-        avgBass += bassHistory[i];
-    }
-    avgEnergy /= energyHistory.length;
-    avgBass /= bassHistory.length;
-    
-    // Spectral Flux (Onset Detection) - Measures the SHARPNESS of the attack
-    let bassFlux = Math.max(0, bass - prevBass);
-    let energyFlux = Math.max(0, overallEnergy - prevEnergy);
-    prevBass = bass;
-    prevEnergy = overallEnergy;
-    
     // 2. Dynamic Circuit Lighting 
     // The background completely synchronizes with overall energy smoothly
     let targetIntensity = overallEnergy / 255;
@@ -364,13 +338,24 @@ function renderFrame() {
     smoothedIntensity += (targetIntensity - smoothedIntensity) * 0.08;
     drawBackground(smoothedIntensity);
     
-    // 3. True Commercial-Grade Audio Engine
-    // By using pure mathematical ratios (current volume vs average volume), the engine perfectly 
-    // syncs to the rhythm regardless of whether your volume slider is at 10% or 100%.
-    const isBigBeat = bass > (avgBass * 1.3) && bass > 15; 
+    // 3. Perfect Volume-Independent Decaying Thresholds
+    // By using a decaying peak tracker, the engine perfectly catches sharp drum hits AND rhythmic 
+    // pulses in sustained heavy bass drops, completely independent of the master volume.
+    let isBigBeat = false;
+    if (bass > bigBeatThreshold && bass > 15) {
+        isBigBeat = true;
+        bigBeatThreshold = bass * 1.25; // Spike threshold up so it requires a fresh hit to trigger again
+    } else {
+        bigBeatThreshold -= (bigBeatThreshold - 15) * 0.05; // Smoothly decay back down
+    }
     
-    // Light beats (snares/hats) use a tight relative volume check
-    const isSmallBeat = overallEnergy > (avgEnergy * 1.15) && overallEnergy > 10; 
+    let isSmallBeat = false;
+    if (overallEnergy > smallBeatThreshold && overallEnergy > 10) {
+        isSmallBeat = true;
+        smallBeatThreshold = overallEnergy * 1.15;
+    } else {
+        smallBeatThreshold -= (smallBeatThreshold - 10) * 0.1; // Faster decay for rapid high-hats
+    }
     
     const now = Date.now();
     
