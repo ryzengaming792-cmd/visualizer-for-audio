@@ -410,7 +410,7 @@ function renderFrame() {
         lastMelodyTime = now;
     }
     
-    // 4. Draw traveling lightning with Water Wave Effect
+    // 4. Draw traveling lightning
     for (let i = pulses.length - 1; i >= 0; i--) {
         const pulse = pulses[i];
         pulse.distance += pulse.speed;
@@ -424,7 +424,6 @@ function renderFrame() {
 
         const trailEndDist = Math.max(0, pulse.distance - pulse.length);
         const trailStartDist = Math.min(pObj.length, pulse.distance);
-        const activeLength = trailStartDist - trailEndDist;
         
         visCtx.beginPath();
         visCtx.lineCap = 'round';
@@ -437,44 +436,19 @@ function renderFrame() {
         const step = 4; // Distance between interpolated points
         let started = false;
         
-        // Water wave parameters
-        const time = Date.now() * 0.015;
-        const freq = 0.05; // Spatial frequency of the wave
-        const amplitude = 12; // How far it ripples side-to-side
-        
         for (let d = trailEndDist; d <= trailStartDist; d += step) {
             const pt = getPointAlongPath(pObj.points, d);
-            
-            // Calculate tangent to find the orthogonal normal vector
-            const nextPt = getPointAlongPath(pObj.points, d + 1);
-            let nx = 0, ny = 0;
-            if (nextPt) {
-                let dx = nextPt.x - pt.x;
-                let dy = nextPt.y - pt.y;
-                let len = Math.hypot(dx, dy);
-                if (len > 0) {
-                    nx = -dy / len;
-                    ny = dx / len;
-                }
-            }
-            
-            // Envelope ensures the wave smoothly pinches to 0 at the start and end of the lightning bolt
-            let progress = (d - trailEndDist) / (activeLength || 1);
-            let envelope = Math.sin(progress * Math.PI); 
-            
-            // Calculate sine wave offset
-            let waveOffset = Math.sin(d * freq - time) * amplitude * envelope;
-            
-            let x = pt.x + nx * waveOffset;
-            let y = pt.y + ny * waveOffset;
-
             if (!started) {
-                visCtx.moveTo(x, y);
+                visCtx.moveTo(pt.x, pt.y);
                 started = true;
             } else {
-                visCtx.lineTo(x, y);
+                visCtx.lineTo(pt.x, pt.y);
             }
         }
+        
+        // Draw exactly to the tip
+        const tip = getPointAlongPath(pObj.points, trailStartDist);
+        if (started && tip) visCtx.lineTo(tip.x, tip.y);
         
         visCtx.stroke();
     }
