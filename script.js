@@ -365,12 +365,12 @@ function renderFrame() {
     drawBackground(smoothedIntensity);
     
     // 3. True Commercial-Grade Audio Engine
-    // Heavy bass (808s) are often sustained, so we use a hybrid of relative volume and absolute volume.
-    // This absolutely guarantees that heavy drops are recognized perfectly.
-    const isBigBeat = (bass > avgBass * 1.3 && bass > 30) || (bass > 150); 
+    // By using pure mathematical ratios (current volume vs average volume), the engine perfectly 
+    // syncs to the rhythm regardless of whether your volume slider is at 10% or 100%.
+    const isBigBeat = bass > (avgBass * 1.3) && bass > 15; 
     
     // Light beats (snares/hats) use a tight relative volume check
-    const isSmallBeat = overallEnergy > avgEnergy * 1.15 && overallEnergy > 20; 
+    const isSmallBeat = overallEnergy > (avgEnergy * 1.15) && overallEnergy > 10; 
     
     const now = Date.now();
     
