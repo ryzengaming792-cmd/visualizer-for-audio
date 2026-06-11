@@ -102,10 +102,10 @@ function drawBackground(intensity) {
         }
     });
     
-    bgCtx.strokeStyle = `rgba(255, 59, 48, ${lineOpacity})`; 
+    bgCtx.strokeStyle = `rgba(${currentDropColorRgb}, ${lineOpacity})`; 
     if (glowIntensity > 0.2) {
         bgCtx.shadowBlur = glowIntensity * 35; // Huge glow radius
-        bgCtx.shadowColor = '#FF3B30';
+        bgCtx.shadowColor = currentDropColor;
     } else {
         bgCtx.shadowBlur = 0;
     }
@@ -309,6 +309,18 @@ let lastSmallBeatTime = 0;
 let lastMelodyTime = 0;
 let smoothedIntensity = 0; // Tracks smooth glowing
 
+// Professional High-Fidelity Neon RGB Palette
+const rgbPalette = [
+    { hex: '#FF3B30', rgb: '255, 59, 48' },   // Neon Red
+    { hex: '#00F0FF', rgb: '0, 240, 255' },   // Cyber Cyan
+    { hex: '#FF0055', rgb: '255, 0, 85' },    // Laser Pink
+    { hex: '#B026FF', rgb: '176, 38, 255' },  // Deep Purple
+    { hex: '#39FF14', rgb: '57, 255, 20' },   // Acid Green
+    { hex: '#0047FF', rgb: '0, 71, 255' }     // Electric Blue
+];
+let currentDropColor = rgbPalette[0].hex;
+let currentDropColorRgb = rgbPalette[0].rgb;
+
 // Decaying Peak Threshold trackers
 let bigBeatThreshold = 15;
 let smallBeatThreshold = 10;
@@ -361,18 +373,24 @@ function renderFrame() {
     
     // HEAVY BEAT: The Drop
     if (isBigBeat && now - lastBeatTime > 250) {
-        // ALL RED: Passes through all lines together at once
+        
+        // Pick a new professional RGB color for this drop
+        const dropTheme = rgbPalette[Math.floor(Math.random() * rgbPalette.length)];
+        currentDropColor = dropTheme.hex;
+        currentDropColorRgb = dropTheme.rgb;
+        
+        // ALL LINES: Passes through all lines together at once
         for(let i=0; i<paths.length; i++) {
             pulses.push({
                 pathIndex: i,
                 distance: 0,
-                speed: 25 + (targetIntensity * 15), // Extremely fast! Clears out before the next beat to prevent flooding.
-                length: 120 + (targetIntensity * 40), // Long, impressive lightning streaks restored!
-                color: '#FF3B30' // Pure Red
+                speed: 25 + (targetIntensity * 15), // Extremely fast! 
+                length: 120 + (targetIntensity * 40), 
+                color: currentDropColor // Dynamic RGB
             });
         }
         lastBeatTime = now;
-        document.querySelector('.center-logo').style.filter = `drop-shadow(0 0 50px rgba(255, 59, 48, 1))`;
+        document.querySelector('.center-logo').style.filter = `drop-shadow(0 0 50px ${currentDropColor})`;
         
     } 
     // LIGHT BEAT: Rhythmic Elements
@@ -394,7 +412,7 @@ function renderFrame() {
     } 
     else {
         // RESTING Glow
-        document.querySelector('.center-logo').style.filter = `drop-shadow(0 0 ${10 + (smoothedIntensity*10)}px rgba(255, 149, 0, 0.5))`;
+        document.querySelector('.center-logo').style.filter = `drop-shadow(0 0 ${10 + (smoothedIntensity*10)}px rgba(${currentDropColorRgb}, 0.5))`;
     }
     
     // MELODY / REST OF SONG: Continuous Yellow Patterns
