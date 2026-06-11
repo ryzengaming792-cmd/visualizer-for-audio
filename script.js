@@ -410,11 +410,9 @@ function renderFrame() {
         lastMelodyTime = now;
     }
     
-    // 4. Draw traveling lightning
+    // 4. Draw traveling lightning with Water Wave Effect
     for (let i = pulses.length - 1; i >= 0; i--) {
         const pulse = pulses[i];
-        
-        // Removed artificial deceleration so lightning stays extremely fast and electric
         pulse.distance += pulse.speed;
         
         const pObj = paths[pulse.pathIndex];
@@ -423,31 +421,60 @@ function renderFrame() {
             pulses.splice(i, 1);
             continue;
         }
+
+        const trailEndDist = Math.max(0, pulse.distance - pulse.length);
+        const trailStartDist = Math.min(pObj.length, pulse.distance);
+        const activeLength = trailStartDist - trailEndDist;
         
         visCtx.beginPath();
         visCtx.lineCap = 'round';
         visCtx.lineJoin = 'round';
-        visCtx.lineWidth = 4;
+        visCtx.lineWidth = 3;
         visCtx.strokeStyle = pulse.color;
         visCtx.shadowBlur = 20;
         visCtx.shadowColor = pulse.color;
         
-        const trailEndDist = Math.max(0, pulse.distance - pulse.length);
-        const trailStartDist = Math.min(pObj.length, pulse.distance);
-        
-        const step = 5;
+        const step = 4; // Distance between interpolated points
         let started = false;
+        
+        // Water wave parameters
+        const time = Date.now() * 0.015;
+        const freq = 0.05; // Spatial frequency of the wave
+        const amplitude = 12; // How far it ripples side-to-side
+        
         for (let d = trailEndDist; d <= trailStartDist; d += step) {
             const pt = getPointAlongPath(pObj.points, d);
+            
+            // Calculate tangent to find the orthogonal normal vector
+            const nextPt = getPointAlongPath(pObj.points, d + 1);
+            let nx = 0, ny = 0;
+            if (nextPt) {
+                let dx = nextPt.x - pt.x;
+                let dy = nextPt.y - pt.y;
+                let len = Math.hypot(dx, dy);
+                if (len > 0) {
+                    nx = -dy / len;
+                    ny = dx / len;
+                }
+            }
+            
+            // Envelope ensures the wave smoothly pinches to 0 at the start and end of the lightning bolt
+            let progress = (d - trailEndDist) / (activeLength || 1);
+            let envelope = Math.sin(progress * Math.PI); 
+            
+            // Calculate sine wave offset
+            let waveOffset = Math.sin(d * freq - time) * amplitude * envelope;
+            
+            let x = pt.x + nx * waveOffset;
+            let y = pt.y + ny * waveOffset;
+
             if (!started) {
-                visCtx.moveTo(pt.x, pt.y);
+                visCtx.moveTo(x, y);
                 started = true;
             } else {
-                visCtx.lineTo(pt.x, pt.y);
+                visCtx.lineTo(x, y);
             }
         }
-        const tip = getPointAlongPath(pObj.points, trailStartDist);
-        if (started) visCtx.lineTo(tip.x, tip.y);
         
         visCtx.stroke();
     }
