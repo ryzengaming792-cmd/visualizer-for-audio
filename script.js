@@ -351,14 +351,12 @@ function renderFrame() {
     drawBackground(smoothedIntensity);
     
     // 3. Perfect Volume-Independent Decaying Thresholds
-    // By using a decaying peak tracker, the engine perfectly catches sharp drum hits AND rhythmic 
-    // pulses in sustained heavy bass drops, completely independent of the master volume.
     let isBigBeat = false;
-    if (bass > bigBeatThreshold && bass > 15) {
+    if (bass > bigBeatThreshold && bass > 25) { // Stricter absolute floor
         isBigBeat = true;
-        bigBeatThreshold = bass * 1.25; // Spike threshold up so it requires a fresh hit to trigger again
+        bigBeatThreshold = bass * 1.4; // High spike ensures it only pulses on the true "drop" attack
     } else {
-        bigBeatThreshold -= (bigBeatThreshold - 15) * 0.05; // Smoothly decay back down
+        bigBeatThreshold -= (bigBeatThreshold - 25) * 0.02; // Very slow decay ignores minor bass rumbles
     }
     
     let isSmallBeat = false;
@@ -374,8 +372,20 @@ function renderFrame() {
     // HEAVY BEAT: The Drop
     if (isBigBeat && now - lastBeatTime > 250) {
         
-        // Pick a new professional RGB color for this drop
-        const dropTheme = rgbPalette[Math.floor(Math.random() * rgbPalette.length)];
+        // PROFESSIONAL AUDIO ANALYSIS: Analyze the exact pitch (dominant frequency) of the bass drop
+        let domBassBin = 1;
+        let maxBassVal = 0;
+        for(let b=1; b<=12; b++) {
+            if(dataArray[b] > maxBassVal) {
+                maxBassVal = dataArray[b];
+                domBassBin = b;
+            }
+        }
+        
+        // Select the RGB color deterministically based on the pitch of the bass note!
+        let colorIndex = (domBassBin - 1) % rgbPalette.length;
+        const dropTheme = rgbPalette[colorIndex];
+        
         currentDropColor = dropTheme.hex;
         currentDropColorRgb = dropTheme.rgb;
         
